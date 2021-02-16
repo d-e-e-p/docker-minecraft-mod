@@ -11,39 +11,32 @@ RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirr
 
 # built-in packages
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt update \
-    && apt install -y --no-install-recommends software-properties-common curl apache2-utils \
-    && apt update \
-    && apt install -y --no-install-recommends --allow-unauthenticated \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends software-properties-common curl apache2-utils \
+    && apt-get install -y --no-install-recommends --allow-unauthenticated \
         supervisor nginx sudo net-tools zenity xz-utils \
         dbus-x11 x11-utils alsa-utils \
         mesa-utils libgl1-mesa-dri \
-    && apt autoclean -y \
-    && apt autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
-# install debs error if combine together
-RUN apt update \
-    && apt install -y --no-install-recommends --allow-unauthenticated \
-        xvfb x11vnc \
-        vim-tiny firefox ttf-ubuntu-font-family ttf-wqy-zenhei  \
-    && apt autoclean -y \
-    && apt autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get autoclean -y \
+    && apt-get autoremove -y 
 
-RUN apt update \
-    && apt install -y gpg-agent \
+# install debs error if combine together
+RUN apt-get install -y --no-install-recommends --allow-unauthenticated \
+        xvfb x11vnc \
+        vim firefox ttf-ubuntu-font-family ttf-wqy-zenhei  \
+    && apt-get autoclean -y \
+    && apt-get autoremove -y 
+
+RUN apt-get install -y gpg-agent \
     && curl -LO https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
     && (dpkg -i ./google-chrome-stable_current_amd64.deb || apt-get install -fy) \
     && curl -sSL https://dl.google.com/linux/linux_signing_key.pub | apt-key add \
-    && rm google-chrome-stable_current_amd64.deb \
-    && rm -rf /var/lib/apt/lists/*
+    && rm google-chrome-stable_current_amd64.deb 
 
-RUN apt update \
-    && apt install -y --no-install-recommends --allow-unauthenticated \
+RUN apt-get install -y --no-install-recommends --allow-unauthenticated \
         lxde gtk2-engines-murrine gnome-themes-standard gtk2-engines-pixbuf gtk2-engines-murrine arc-theme \
-    && apt autoclean -y \
-    && apt autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get autoclean -y \
+    && apt-get autoremove -y 
 
 
 # Additional packages require ~600MB
@@ -55,58 +48,104 @@ ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /bin/
 RUN chmod +x /bin/tini
 
 # ffmpeg
-RUN apt update \
-    && apt install -y --no-install-recommends --allow-unauthenticated \
+RUN apt-get install -y --no-install-recommends --allow-unauthenticated \
         ffmpeg \
-    && rm -rf /var/lib/apt/lists/* \
     && mkdir /usr/local/ffmpeg \
     && ln -s /usr/bin/ffmpeg /usr/local/ffmpeg/ffmpeg
 
-# python library
-COPY rootfs/usr/local/lib/web/backend/requirements.txt /tmp/
-RUN apt-get update \
-    && dpkg-query -W -f='${Package}\n' > /tmp/a.txt \
-    && apt-get install -y python3-pip python3-dev build-essential \
-	&& pip3 install setuptools wheel && pip3 install -r /tmp/requirements.txt \
-    && ln -s /usr/bin/python3 /usr/local/bin/python \
-    && dpkg-query -W -f='${Package}\n' > /tmp/b.txt \
-    && apt-get remove -y `diff --changed-group-format='%>' --unchanged-group-format='' /tmp/a.txt /tmp/b.txt | xargs` \
-    && apt-get autoclean -y \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /var/cache/apt/* /tmp/a.txt /tmp/b.txt
+#
+# jdk
+#
+#RUN apt-get update &&  apt-get -y upgrade &&  apt-get autoclean -y &&  apt-get autoremove -y
+
+RUN apt-get -y install openjdk-8-jdk-headless   # version 8u282-b08-0ubuntu1~20.04
+RUN apt-get -y install openjdk-8-jre-headless   # version 8u282-b08-0ubuntu1~20.04
+RUN apt-get -y install fish gradle p7zip-full wget
+
+## ----------------------------------------------------------------------------
+## ---- To change to different Eclipse version: e.g., oxygen, change here! ----
+## ----------------------------------------------------------------------------
+
+## -- 1.) Eclipse version: oxygen, photon, etc.: -- ##
+ARG ECLIPSE_VERSION=${ECLIPSE_VERSION:-2020-06}
+ENV ECLIPSE_VERSION=${ECLIPSE_VERSION}
+
+## -- 2.) Eclipse Type: -- ##
+ARG ECLIPSE_TYPE=${ECLIPSE_TYPE:-jee}
+
+## -- 3.) Eclipse Release: -- ##
+ARG ECLIPSE_RELEASE=${ECLIPSE_RELEASE:-R}
+
+## -- 4.) Eclipse Download Mirror site: -- ##
+ARG ECLIPSE_OS_BUILD=${ECLIPSE_OS_BUILD:-linux-gtk-x86_64}
+
+## -- 5.) Eclipse Download Mirror site: -- ##
+#https://mirror.math.princeton.edu/pub/eclipse/technology/epp/downloads/release/2020-06/R/eclipse-jee-2020-06-R-linux-gtk-x86_64.tar.gz
+
+#http://mirror.math.princeton.edu/pub/eclipse/technology/epp/downloads/release/photon/R/eclipse-jee-photon-R-linux-gtk-x86_64.tar.gz
+#http://mirror.math.princeton.edu/pub/eclipse/technology/epp/downloads/release/photon/R/eclipse-modeling-photon-R-linux-gtk-x86_64.tar.gz
+ARG ECLIPSE_MIRROR_SITE_URL=${ECLIPSE_MIRROR_SITE_URL:-http://mirror.math.princeton.edu}
+
+## ----------------------------------------------------------------------------------- ##
+## ----------------------------------------------------------------------------------- ##
+## ----------- Don't change below unless Eclipse download system change -------------- ##
+## ----------------------------------------------------------------------------------- ##
+## ----------------------------------------------------------------------------------- ##
+## -- Eclipse TAR/GZ filename: -- ##
+#ARG ECLIPSE_TAR=${ECLIPSE_TAR:-eclipse-jee-photon-R-linux-gtk-x86_64.tar.gz}
+ARG ECLIPSE_TAR=${ECLIPSE_TAR:-eclipse-${ECLIPSE_TYPE}-${ECLIPSE_VERSION}-${ECLIPSE_RELEASE}-${ECLIPSE_OS_BUILD}.tar.gz}
+
+## -- Eclipse Download route: -- ##
+ARG ECLIPSE_DOWNLOAD_ROUTE=${ECLIPSE_DOWNLOAD_ROUTE:-pub/eclipse/technology/epp/downloads/release/${ECLIPSE_VERSION}/${ECLIPSE_RELEASE}}
+
+## -- Eclipse Download full URL: -- ##
+## e.g.: http://mirror.math.princeton.edu/pub/eclipse/technology/epp/downloads/release/photon/R/
+## e.g.: http://mirror.math.princeton.edu/pub/eclipse/technology/epp/downloads/release/photon/R/
+ARG ECLIPSE_DOWNLOAD_URL=${ECLIPSE_DOWNLOAD_URL:-${ECLIPSE_MIRROR_SITE_URL}/${ECLIPSE_DOWNLOAD_ROUTE}}
+
+## http://ftp.osuosl.org/pub/eclipse/technology/epp/downloads/release/photon/R/eclipse-jee-photon-R-linux-gtk-x86_64.tar.gz
+## http://mirror.math.princeton.edu/pub/eclipse/technology/epp/downloads/release/photon/R/eclipse-jee-photon-R-linux-gtk-x86_64.tar.gz
+## http://mirror.math.princeton.edu/pub/eclipse/technology/epp/downloads/release/photon/R/eclipse-modeling-photon-R-linux-gtk-x86_64.tar.gz
+WORKDIR /opt
+RUN wget -q -c ${ECLIPSE_DOWNLOAD_URL}/${ECLIPSE_TAR} && \
+    tar xvf ${ECLIPSE_TAR} && \
+    rm ${ECLIPSE_TAR}
 
 
-################################################################################
-# builder
-################################################################################
-FROM ubuntu:20.04 as builder
+## ----------------------------------------------------------------------------
+## create user
+## ----------------------------------------------------------------------------
+
+ENV USER=${USER:-developer}
+ENV PASSWORD=${PASSWORD:-developer}
+ENV HOME=/home/${USER}
+ENV ECLIPSE_WORKSPACE=${HOME}/workspace
+
+RUN useradd --create-home --shell /usr/bin/fish --user-group --groups adm,sudo ${USER}
+RUN echo "${USER}:${PASSWORD}" | chpasswd
+RUN echo "$USER ALL=(ALL) NOPASSWD:ALL" | tee -a /etc/sudoers
 
 
-RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
+##################################
+#### Set up user environments ####
+##################################
+VOLUME ${ECLIPSE_WORKSPACE}
+VOLUME ${HOME}/.eclipse
 
+RUN sudo chown -R ${USER}:${USER} ${HOME} && ls -lR ${HOME}
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates gnupg patch
+##################################
+#### minecraft ####
+##################################
 
-# nodejs
-RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
-    && apt-get install -y nodejs
+WORKDIR /opt
+USER root
 
-# yarn
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update \
-    && apt-get install -y yarn
+RUN wget https://launcher.mojang.com/download/Minecraft.deb && \
+    apt-get -y install gdebi-core && \
+    gdebi --non-interactive ./Minecraft.deb
 
-# build frontend
-COPY web /src/web
-RUN cd /src/web \
-    && yarn \
-    && yarn build
-RUN sed -i 's#app/locale/#novnc/app/locale/#' /src/web/dist/static/novnc/app/ui.js
-
-
+   
 
 ################################################################################
 # merge
@@ -114,14 +153,9 @@ RUN sed -i 's#app/locale/#novnc/app/locale/#' /src/web/dist/static/novnc/app/ui.
 FROM system
 LABEL maintainer="deep"
 
-COPY --from=builder /src/web/dist/ /usr/local/lib/web/frontend/
 COPY rootfs /
-RUN ln -sf /usr/local/lib/web/frontend/static/websockify /usr/local/lib/web/frontend/static/novnc/utils/websockify && \
-	chmod +x /usr/local/lib/web/frontend/static/websockify/run
-
-EXPOSE 80
 WORKDIR /root
 ENV HOME=/home/ubuntu \
     SHELL=/bin/bash
-HEALTHCHECK --interval=30s --timeout=5s CMD curl --fail http://127.0.0.1:6079/api/health
+
 ENTRYPOINT ["/startup.sh"]

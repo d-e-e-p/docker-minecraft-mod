@@ -68,6 +68,13 @@ if [ -n "$RELATIVE_URL_ROOT" ]; then
 	sed -i 's|_RELATIVE_URL_ROOT_|'$RELATIVE_URL_ROOT'|' /etc/nginx/sites-enabled/default
 fi
 
+su - $USER -c mkdir -p ${HOME}/.eclipse ${ECLIPSE_WORKSPACE} && \
+        mkdir -p ${ECLIPSE_WORKSPACE}/forge && cd ${ECLIPSE_WORKSPACE}/forge \
+        && wget https://files.minecraftforge.net/maven/net/minecraftforge/forge/1.16.4-35.1.37/forge-1.16.4-35.1.37-mdk.zip \
+        && 7z x forge-1.16.4-35.1.37-mdk.zip \
+        && ./gradlew --info genEclipseRuns --refresh-dependencies  \
+        && ./gradlew eclipse
+
 # clearup
 PASSWORD=
 HTTP_PASSWORD=

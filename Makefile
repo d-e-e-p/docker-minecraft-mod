@@ -1,7 +1,7 @@
 .PHONY: build run
 
 # Default values for variables
-REPO  ?= dorowu/ubuntu-desktop-lxde-vnc
+REPO  ?= deep/minecraft-mod
 TAG   ?= latest
 # you can choose other base image versions
 IMAGE ?= ubuntu:20.04
@@ -22,21 +22,23 @@ build: $(templates)
 # the local dir will be mounted under /src read-only
 run:
 	docker run --privileged --rm \
-		-p 6080:80 -p 6081:443 \
+		-p 6080:80 -p 6081:443 -p 5900:5900\
 		-v ${PWD}:/src:ro \
-		-e USER=doro -e PASSWORD=mypassword \
+		-e USER=developer -e PASSWORD=developer \
+		-e VNC_PASSWORD=developer \
 		-e ALSADEV=hw:2,0 \
+		-e RESOLUTION=1920x1080 \
 		-e SSL_PORT=443 \
 		-e RELATIVE_URL_ROOT=approot \
 		-e OPENBOX_ARGS="--startup /usr/bin/galculator" \
 		-v ${PWD}/ssl:/etc/nginx/ssl \
 		--device /dev/snd \
-		--name ubuntu-desktop-lxde-test \
+		--name mine-mod \
 		$(REPO):$(TAG)
 
 # Connect inside the running container for debugging
 shell:
-	docker exec -it ubuntu-desktop-lxde-test bash
+	docker exec -it mine-mod bash
 
 # Generate the SSL/TLS config for HTTPS
 gen-ssl:
